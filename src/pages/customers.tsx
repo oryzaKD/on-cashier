@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -25,6 +23,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Search,
   MoreHorizontal,
@@ -48,6 +47,9 @@ interface Customer {
   name: string
   email: string
   phone: string
+  address: string
+  customerType: string
+  notes: string
   joinDate: Date
   totalSpent: number
   visits: number
@@ -68,135 +70,173 @@ export default function Customers() {
     name: "",
     email: "",
     phone: "",
+    address: "",
+    customerType: "regular",
+    notes: ""
   })
+  const [errors, setErrors] = useState<Partial<Customer>>({})
 
   // Mock customer data
   const [customers, setCustomers] = useState<Customer[]>([
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@example.com",
-      phone: "(555) 123-4567",
-      joinDate: new Date(2022, 5, 12),
-      totalSpent: 345.75,
-      visits: 24,
-      lastVisit: new Date(2023, 3, 10),
-      loyaltyPoints: 120,
-      favoriteItems: ["Espresso", "Croissant"],
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      phone: "(555) 234-5678",
-      joinDate: new Date(2022, 2, 5),
-      totalSpent: 567.5,
-      visits: 42,
-      lastVisit: new Date(2023, 3, 15),
-      loyaltyPoints: 230,
-      favoriteItems: ["Cappuccino", "Blueberry Muffin"],
-    },
-    {
-      id: 3,
-      name: "Michael Brown",
-      email: "michael.b@example.com",
-      phone: "(555) 345-6789",
-      joinDate: new Date(2022, 8, 18),
-      totalSpent: 189.25,
-      visits: 15,
-      lastVisit: new Date(2023, 2, 28),
-      loyaltyPoints: 75,
-      favoriteItems: ["Latte", "Sandwich"],
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      email: "emily.d@example.com",
-      phone: "(555) 456-7890",
-      joinDate: new Date(2022, 11, 3),
-      totalSpent: 98.5,
-      visits: 8,
-      lastVisit: new Date(2023, 3, 5),
-      loyaltyPoints: 40,
-      favoriteItems: ["Green Tea"],
-    },
-    {
-      id: 5,
-      name: "David Wilson",
-      email: "david.w@example.com",
-      phone: "(555) 567-8901",
-      joinDate: new Date(2022, 1, 20),
-      totalSpent: 782.3,
-      visits: 56,
-      lastVisit: new Date(2023, 3, 14),
-      loyaltyPoints: 310,
-      favoriteItems: ["Mocha", "Chocolate Muffin", "Sandwich"],
-    },
-    {
-      id: 6,
-      name: "Jennifer Taylor",
-      email: "jennifer.t@example.com",
-      phone: "(555) 678-9012",
-      joinDate: new Date(2022, 4, 8),
-      totalSpent: 435.9,
-      visits: 32,
-      lastVisit: new Date(2023, 3, 12),
-      loyaltyPoints: 175,
-      favoriteItems: ["Cappuccino", "Croissant"],
-    },
-    {
-      id: 7,
-      name: "Robert Anderson",
-      email: "robert.a@example.com",
-      phone: "(555) 789-0123",
-      joinDate: new Date(2022, 7, 15),
-      totalSpent: 267.8,
-      visits: 19,
-      lastVisit: new Date(2023, 3, 1),
-      loyaltyPoints: 95,
-      favoriteItems: ["Espresso", "Salad"],
-    },
-    {
-      id: 8,
-      name: "Lisa Thomas",
-      email: "lisa.t@example.com",
-      phone: "(555) 890-1234",
-      joinDate: new Date(2022, 9, 27),
-      totalSpent: 156.45,
-      visits: 12,
-      lastVisit: new Date(2023, 2, 20),
-      loyaltyPoints: 60,
-      favoriteItems: ["Tea", "Soup"],
-    },
+    // {
+    //   id: 1,
+    //   name: "John Smith",
+    //   email: "john.smith@example.com",
+    //   phone: "(555) 123-4567",
+    //   joinDate: new Date(2022, 5, 12),
+    //   totalSpent: 345.75,
+    //   visits: 24,
+    //   lastVisit: new Date(2023, 3, 10),
+    //   loyaltyPoints: 120,
+    //   favoriteItems: ["Espresso", "Croissant"],
+    // },
+    // {
+    //   id: 2,
+    //   name: "Sarah Johnson",
+    //   email: "sarah.j@example.com",
+    //   phone: "(555) 234-5678",
+    //   joinDate: new Date(2022, 2, 5),
+    //   totalSpent: 567.5,
+    //   visits: 42,
+    //   lastVisit: new Date(2023, 3, 15),
+    //   loyaltyPoints: 230,
+    //   favoriteItems: ["Cappuccino", "Blueberry Muffin"],
+    // },
+    // {
+    //   id: 3,
+    //   name: "Michael Brown",
+    //   email: "michael.b@example.com",
+    //   phone: "(555) 345-6789",
+    //   joinDate: new Date(2022, 8, 18),
+    //   totalSpent: 189.25,
+    //   visits: 15,
+    //   lastVisit: new Date(2023, 2, 28),
+    //   loyaltyPoints: 75,
+    //   favoriteItems: ["Latte", "Sandwich"],
+    // },
+    // {
+    //   id: 4,
+    //   name: "Emily Davis",
+    //   email: "emily.d@example.com",
+    //   phone: "(555) 456-7890",
+    //   joinDate: new Date(2022, 11, 3),
+    //   totalSpent: 98.5,
+    //   visits: 8,
+    //   lastVisit: new Date(2023, 3, 5),
+    //   loyaltyPoints: 40,
+    //   favoriteItems: ["Green Tea"],
+    // },
+    // {
+    //   id: 5,
+    //   name: "David Wilson",
+    //   email: "david.w@example.com",
+    //   phone: "(555) 567-8901",
+    //   joinDate: new Date(2022, 1, 20),
+    //   totalSpent: 782.3,
+    //   visits: 56,
+    //   lastVisit: new Date(2023, 3, 14),
+    //   loyaltyPoints: 310,
+    //   favoriteItems: ["Mocha", "Chocolate Muffin", "Sandwich"],
+    // },
+    // {
+    //   id: 6,
+    //   name: "Jennifer Taylor",
+    //   email: "jennifer.t@example.com",
+    //   phone: "(555) 678-9012",
+    //   joinDate: new Date(2022, 4, 8),
+    //   totalSpent: 435.9,
+    //   visits: 32,
+    //   lastVisit: new Date(2023, 3, 12),
+    //   loyaltyPoints: 175,
+    //   favoriteItems: ["Cappuccino", "Croissant"],
+    // },
+    // {
+    //   id: 7,
+    //   name: "Robert Anderson",
+    //   email: "robert.a@example.com",
+    //   phone: "(555) 789-0123",
+    //   joinDate: new Date(2022, 7, 15),
+    //   totalSpent: 267.8,
+    //   visits: 19,
+    //   lastVisit: new Date(2023, 3, 1),
+    //   loyaltyPoints: 95,
+    //   favoriteItems: ["Espresso", "Salad"],
+    // },
+    // {
+    //   id: 8,
+    //   name: "Lisa Thomas",
+    //   email: "lisa.t@example.com",
+    //   phone: "(555) 890-1234",
+    //   joinDate: new Date(2022, 9, 27),
+    //   totalSpent: 156.45,
+    //   visits: 12,
+    //   lastVisit: new Date(2023, 2, 20),
+    //   loyaltyPoints: 60,
+    //   favoriteItems: ["Tea", "Soup"],
+    // },
   ])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setNewCustomer((prev) => ({
+        ...prev,
+        [name]: value,
+    }))
+    // Clear error when field is edited
+    if (errors[name as keyof Customer]) {
+        setErrors((prev) => ({
+            ...prev,
+            [name]: undefined,
+        }))
+    }
+}
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/customers`);
+        if (res.ok) {
+          const data = await res.json();
+          setCustomers(data)
+          console.log('Customers:', data);
+        } else {
+          console.error('Failed to fetch customers:', res.status);
+        }
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
 
   const filteredCustomers = searchQuery
     ? customers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.phone.includes(searchQuery),
-      )
+      (c) =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.phone.includes(searchQuery),
+    )
     : customers
 
-    const sortedCustomers = [...filteredCustomers].sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-    
-      if (sortField === "joinDate" || sortField === "lastVisit") {
-        const aDate = new Date(Array.isArray(aValue) ? aValue[0] : aValue);
-        const bDate = new Date(Array.isArray(bValue) ? bValue[0] : bValue);
-    
-        return sortDirection === "asc"
-          ? aDate.getTime() - bDate.getTime()
-          : bDate.getTime() - aDate.getTime();
-      } else if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-      } else {
-        return sortDirection === "asc" ? Number(aValue) - Number(bValue) : Number(bValue) - Number(aValue);
-      }
-    });
-    
+  const sortedCustomers = [...filteredCustomers].sort((a, b) => {
+    const aValue = a[sortField];
+    const bValue = b[sortField];
+
+    if (sortField === "joinDate" || sortField === "lastVisit") {
+      const aDate = new Date(Array.isArray(aValue) ? aValue[0] : aValue);
+      const bDate = new Date(Array.isArray(bValue) ? bValue[0] : bValue);
+
+      return sortDirection === "asc"
+        ? aDate.getTime() - bDate.getTime()
+        : bDate.getTime() - aDate.getTime();
+    } else if (typeof aValue === "string" && typeof bValue === "string") {
+      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+    } else {
+      return sortDirection === "asc" ? Number(aValue) - Number(bValue) : Number(bValue) - Number(aValue);
+    }
+  });
+
 
   const handleSort = (field: keyof Customer) => {
     if (field === sortField) {
@@ -223,6 +263,9 @@ export default function Customers() {
       name: newCustomer.name,
       email: newCustomer.email,
       phone: newCustomer.phone,
+      address: newCustomer.address,
+      customerType: newCustomer.customerType,
+      notes: newCustomer.notes,
       joinDate: new Date(),
       totalSpent: 0,
       visits: 0,
@@ -232,11 +275,29 @@ export default function Customers() {
     }
 
     setCustomers([...customers, customer])
-    setNewCustomer({
-      name: "",
-      email: "",
-      phone: "",
+    // setNewCustomer({
+    //   name: "",
+    //   email: "",
+    //   phone: "",
+    //   address: "",
+    //   customerType: "Regular",
+    //   notes: ""
+    // })
+    const { name, email, phone, address, customerType, notes } = customer;
+
+    const selectedCustomer = { name, email, phone, address, customerType, notes };
+
+    console.log(selectedCustomer);
+    console.log(JSON.stringify(customer))
+    fetch("http://localhost:5000/api/customers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(selectedCustomer),
     })
+    // .then((res) => res.json())
+    // .then((data) => {
+    //   setCustomers([...customers, data]);
+    // });
     setIsAddDialogOpen(false)
 
     // toast({
@@ -277,7 +338,7 @@ export default function Customers() {
                 Add Customer
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-background/90 backdrop-blur-sm border-none">
               <DialogHeader>
                 <DialogTitle>Add New Customer</DialogTitle>
                 <DialogDescription>Fill in the details to add a new customer to your database.</DialogDescription>
@@ -289,10 +350,13 @@ export default function Customers() {
                   </Label>
                   <Input
                     id="name"
+                    name="name"
                     value={newCustomer.name}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                    className="col-span-3"
+                    // onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                    onChange={handleChange}
+                    className={errors.name ? "border-red-500" : ""}
                   />
+                  {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">
@@ -300,10 +364,11 @@ export default function Customers() {
                   </Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     value={newCustomer.email}
                     onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                    className="col-span-3"
+                    className={errors.email ? "border-red-500" : ""}
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -315,6 +380,31 @@ export default function Customers() {
                     value={newCustomer.phone}
                     onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                     className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="address" className="text-right">
+                    Address
+                  </Label>
+                  <Input
+                    id="address"
+                    value={newCustomer.address}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="flex items-center gap-2">
+                    Notes
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    value={newCustomer.notes}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
+                    placeholder="Additional information about the customer"
+                    className="resize-none"
+                    rows={3}
                   />
                 </div>
               </div>
@@ -340,7 +430,7 @@ export default function Customers() {
             <p className="text-xs text-muted-foreground">in database</p>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -369,7 +459,7 @@ export default function Customers() {
             <div className="text-2xl font-bold">{loyalCustomers}</div>
             <p className="text-xs text-muted-foreground">with 20+ visits</p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       <Card>
@@ -388,7 +478,23 @@ export default function Customers() {
                     )}
                   </div>
                 </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort("joinDate")}>
+                <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort("email")}>
+                  <div className="flex items-center">
+                    Email
+                    {sortField === "email" && (
+                      <ArrowUpDown className={`ml-2 h-4 w-4 ${sortDirection === "desc" ? "rotate-180" : ""}`} />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort("customerType")}>
+                  <div className="flex items-center">
+                    Customer Type
+                    {sortField === "customerType" && (
+                      <ArrowUpDown className={`ml-2 h-4 w-4 ${sortDirection === "desc" ? "rotate-180" : ""}`} />
+                    )}
+                  </div>
+                </TableHead>
+                {/* <TableHead className="cursor-pointer" onClick={() => handleSort("joinDate")}>
                   <div className="flex items-center">
                     Join Date
                     {sortField === "joinDate" && (
@@ -411,7 +517,7 @@ export default function Customers() {
                       <ArrowUpDown className={`ml-2 h-4 w-4 ${sortDirection === "desc" ? "rotate-180" : ""}`} />
                     )}
                   </div>
-                </TableHead>
+                </TableHead> */}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -435,9 +541,10 @@ export default function Customers() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{format(customer.joinDate, "MMM dd, yyyy")}</TableCell>
-                  <TableCell>{customer.visits}</TableCell>
-                  <TableCell className="text-right">${customer.totalSpent.toFixed(2)}</TableCell>
+                  {/* <TableCell>{format(customer.joinDate, "MMM dd, yyyy")}</TableCell> */}
+                  <TableCell>{customer.email}</TableCell>
+                  <TableCell>{customer.customerType}</TableCell>
+                  {/* <TableCell className="text-right">${customer.totalSpent.toFixed(2)}</TableCell> */}
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -472,7 +579,7 @@ export default function Customers() {
       </Card>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] bg-background/90 backdrop-blur-sm border-none">
           <DialogHeader>
             <DialogTitle>Customer Profile</DialogTitle>
           </DialogHeader>
