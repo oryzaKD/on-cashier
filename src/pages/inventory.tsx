@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -54,42 +54,26 @@ export default function Inventory() {
   })
 
   // Mock product data
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: 1,
-      name: "Espresso Beans (1kg)",
-      category: "Coffee Beans",
-      price: 24.99,
-      cost: 15.5,
-      stock: 32,
-      sku: "CB-ESP-1KG",
-    },
-    { id: 2, name: "Ceramic Mug", category: "Merchandise", price: 12.99, cost: 5.25, stock: 45, sku: "MER-MUG-01" },
-    { id: 3, name: "Tea Infuser", category: "Tea Accessories", price: 8.99, cost: 3.5, stock: 28, sku: "TA-INF-01" },
-    { id: 4, name: "Croissant", category: "Pastry", price: 2.99, cost: 1.25, stock: 15, sku: "FD-CRO-01" },
-    {
-      id: 5,
-      name: "Cold Brew Kit",
-      category: "Coffee Accessories",
-      price: 34.99,
-      cost: 18.75,
-      stock: 12,
-      sku: "CA-CBK-01",
-    },
-    { id: 6, name: "Green Tea (100g)", category: "Tea", price: 14.99, cost: 7.5, stock: 22, sku: "TE-GRN-100G" },
-    { id: 7, name: "Coffee Grinder", category: "Equipment", price: 49.99, cost: 28.5, stock: 8, sku: "EQ-GRD-01" },
-    { id: 8, name: "Chocolate Cookies", category: "Pastry", price: 1.99, cost: 0.85, stock: 40, sku: "FD-CCK-01" },
-    { id: 9, name: "Gift Card $25", category: "Gift Cards", price: 25.0, cost: 25.0, stock: 50, sku: "GC-025-01" },
-    {
-      id: 10,
-      name: "Coffee Filter Papers",
-      category: "Coffee Accessories",
-      price: 6.99,
-      cost: 2.75,
-      stock: 65,
-      sku: "CA-FLT-01",
-    },
-  ])
+  const [products, setProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await fetch(`http://localhost:3001/api/inventory`);
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data)
+          console.log('Customers:', data);
+        } else {
+          console.error('Failed to fetch customers:', res.status);
+        }
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
 
   const categories = [...new Set(products.map((p) => p.category))]
 
@@ -312,7 +296,7 @@ export default function Inventory() {
             <p className="text-xs text-muted-foreground">items with less than 10 in stock</p>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average Margin</CardTitle>
           </CardHeader>
@@ -323,7 +307,7 @@ export default function Inventory() {
             </div>
             <p className="text-xs text-muted-foreground">across all products</p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       <Card>

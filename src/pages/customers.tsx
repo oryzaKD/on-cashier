@@ -85,105 +85,27 @@ export default function Customers() {
   })
   const [errors, setErrors] = useState<Partial<Customer>>({})
 
+  const resetForm = () => {
+    setNewCustomer({
+      id: Number("123"),
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      customerType: "regular",
+      notes: "",
+      joinDate: new Date,
+      totalSpent: Number("123"),
+      visits: Number("123"),
+      lastVisit: new Date,
+      loyaltyPoints: Number("123"),
+      favoriteItems: [""],
+    })
+    setErrors({})
+  }
+
   // Mock customer data
-  const [customers, setCustomers] = useState<Customer[]>([
-    // {
-    //   id: 1,
-    //   name: "John Smith",
-    //   email: "john.smith@example.com",
-    //   phone: "(555) 123-4567",
-    //   joinDate: new Date(2022, 5, 12),
-    //   totalSpent: 345.75,
-    //   visits: 24,
-    //   lastVisit: new Date(2023, 3, 10),
-    //   loyaltyPoints: 120,
-    //   favoriteItems: ["Espresso", "Croissant"],
-    // },
-    // {
-    //   id: 2,
-    //   name: "Sarah Johnson",
-    //   email: "sarah.j@example.com",
-    //   phone: "(555) 234-5678",
-    //   joinDate: new Date(2022, 2, 5),
-    //   totalSpent: 567.5,
-    //   visits: 42,
-    //   lastVisit: new Date(2023, 3, 15),
-    //   loyaltyPoints: 230,
-    //   favoriteItems: ["Cappuccino", "Blueberry Muffin"],
-    // },
-    // {
-    //   id: 3,
-    //   name: "Michael Brown",
-    //   email: "michael.b@example.com",
-    //   phone: "(555) 345-6789",
-    //   joinDate: new Date(2022, 8, 18),
-    //   totalSpent: 189.25,
-    //   visits: 15,
-    //   lastVisit: new Date(2023, 2, 28),
-    //   loyaltyPoints: 75,
-    //   favoriteItems: ["Latte", "Sandwich"],
-    // },
-    // {
-    //   id: 4,
-    //   name: "Emily Davis",
-    //   email: "emily.d@example.com",
-    //   phone: "(555) 456-7890",
-    //   joinDate: new Date(2022, 11, 3),
-    //   totalSpent: 98.5,
-    //   visits: 8,
-    //   lastVisit: new Date(2023, 3, 5),
-    //   loyaltyPoints: 40,
-    //   favoriteItems: ["Green Tea"],
-    // },
-    // {
-    //   id: 5,
-    //   name: "David Wilson",
-    //   email: "david.w@example.com",
-    //   phone: "(555) 567-8901",
-    //   joinDate: new Date(2022, 1, 20),
-    //   totalSpent: 782.3,
-    //   visits: 56,
-    //   lastVisit: new Date(2023, 3, 14),
-    //   loyaltyPoints: 310,
-    //   favoriteItems: ["Mocha", "Chocolate Muffin", "Sandwich"],
-    // },
-    // {
-    //   id: 6,
-    //   name: "Jennifer Taylor",
-    //   email: "jennifer.t@example.com",
-    //   phone: "(555) 678-9012",
-    //   joinDate: new Date(2022, 4, 8),
-    //   totalSpent: 435.9,
-    //   visits: 32,
-    //   lastVisit: new Date(2023, 3, 12),
-    //   loyaltyPoints: 175,
-    //   favoriteItems: ["Cappuccino", "Croissant"],
-    // },
-    // {
-    //   id: 7,
-    //   name: "Robert Anderson",
-    //   email: "robert.a@example.com",
-    //   phone: "(555) 789-0123",
-    //   joinDate: new Date(2022, 7, 15),
-    //   totalSpent: 267.8,
-    //   visits: 19,
-    //   lastVisit: new Date(2023, 3, 1),
-    //   loyaltyPoints: 95,
-    //   favoriteItems: ["Espresso", "Salad"],
-    // },
-    // {
-    //   id: 8,
-    //   name: "Lisa Thomas",
-    //   email: "lisa.t@example.com",
-    //   phone: "(555) 890-1234",
-    //   joinDate: new Date(2022, 9, 27),
-    //   totalSpent: 156.45,
-    //   visits: 12,
-    //   lastVisit: new Date(2023, 2, 20),
-    //   loyaltyPoints: 60,
-    //   favoriteItems: ["Tea", "Soup"],
-    // },
-  ])
+  const [customers, setCustomers] = useState<Customer[]>([])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -203,7 +125,7 @@ export default function Customers() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/customers`);
+        const res = await fetch(`http://localhost:3001/api/customers`);
         if (res.ok) {
           const data = await res.json();
           setCustomers(data)
@@ -272,6 +194,14 @@ export default function Customers() {
     if (!newCustomer.phone.trim()) {
       newErrors.phone = "Phone number is required"
     }
+
+    if (!newCustomer.address.trim()) {
+      newErrors.address = "Address is required"
+    }
+
+    // if (!newCustomer.notes.trim()) {
+    //   newErrors.notes = "Notes are required"
+    // }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -360,7 +290,12 @@ export default function Customers() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open)
+            if (!open) {
+              resetForm()
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -370,7 +305,7 @@ export default function Customers() {
             <DialogContent className="bg-background/90 backdrop-blur-sm border-none">
               <DialogHeader>
                 <DialogTitle>Add New Customer</DialogTitle>
-                <DialogDescription>Fill in the details to add a new customer to your database.</DialogDescription>
+                {/* <DialogDescription>Fill in the details to add a new customer to your database.</DialogDescription> */}
               </DialogHeader>
               <form onSubmit={handleAddCustomer}>
                 <div className="grid gap-4 py-4">
@@ -378,20 +313,22 @@ export default function Customers() {
                     <Label htmlFor="name" className="text-right">
                       Name
                     </Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={newCustomer.name}
-                      // onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                      onChange={handleChange}
-                      className={errors.name ? "border-red-500" : ""}
-                    />
-                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    <div className="col-span-3">
+                      <Input
+                        id="name"
+                        name="name"
+                        value={newCustomer.name}
+                        onChange={handleChange}
+                        className={errors.name ? "border-red-500" : ""}
+                      />
+                      {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="email" className="text-right">
                       Email
                     </Label>
+                    <div className="col-span-3">
                     <Input
                       id="email"
                       name="email"
@@ -401,38 +338,44 @@ export default function Customers() {
                       onChange={handleChange}
                       className={errors.email ? "border-red-500" : ""}
                     />
-                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="phone" className="text-right">
                       Phone
                     </Label>
+                    <div className="col-span-3">
                     <Input
                       id="phone"
                       value={newCustomer.phone}
                       // onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                       onChange={handleChange}
-                      className={errors.name ? "border-red-500" : ""}
+                      className={errors.phone ? "border-red-500" : ""}
                     />
-                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="address" className="text-right">
                       Address
                     </Label>
+                    <div className="col-span-3">
                     <Input
                       id="address"
                       value={newCustomer.address}
                       // onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
                       onChange={handleChange}
-                      className={errors.name ? "border-red-500" : ""}
+                      className={errors.address ? "border-red-500" : ""}
                     />
-                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes" className="flex items-center gap-2">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="notes" className="text-right">
                       Notes
                     </Label>
+                    <div className="col-span-3">
                     <Textarea
                       id="notes"
                       name="notes"
@@ -440,22 +383,40 @@ export default function Customers() {
                       // onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
                       onChange={handleChange}
                       placeholder="Additional information about the customer"
-                      className={errors.name ? "border-red-500" : ""}
+                      className={errors.notes ? "border-red-500" : ""}
                       rows={3}
                     />
-                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    {errors.notes && <p className="text-xs text-red-500">{errors.notes}</p>}
+                    </div>
                   </div>
                 </div>
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsAddDialogOpen(false)
+                      resetForm()
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!validateForm()) {
+                        return;
+                      }
+                      handleAddCustomer(e);
+                    }}
+                  >
+                    <User className="h-4 w-4" />
+                    Add Customer
+                  </Button>
+                </DialogFooter>
               </form>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-                  <User className="h-4 w-4" />
-                  Add Customer
-                </Button>
-              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
