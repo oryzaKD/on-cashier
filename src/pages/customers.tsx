@@ -41,6 +41,8 @@ import {
 import { format } from "date-fns"
 // import { useToast } from "@/components/ui/use-toast"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { X } from "node_modules/framer-motion/dist/types.d-DDSxwf0n"
+import { number } from "framer-motion"
 
 interface Customer {
   id: number
@@ -66,13 +68,20 @@ export default function Customers() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const [newCustomer, setNewCustomer] = useState({
+  const [newCustomer, setNewCustomer] = useState<Customer>({
+    id: Number("123"),
     name: "",
     email: "",
     phone: "",
     address: "",
     customerType: "regular",
-    notes: ""
+    notes: "",
+    joinDate: new Date,
+    totalSpent: Number("123"),
+    visits: Number("123"),
+    lastVisit: new Date,
+    loyaltyPoints: Number("123"),
+    favoriteItems: [""],
   })
   const [errors, setErrors] = useState<Partial<Customer>>({})
 
@@ -179,17 +188,17 @@ export default function Customers() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setNewCustomer((prev) => ({
-        ...prev,
-        [name]: value,
+      ...prev,
+      [name]: value,
     }))
     // Clear error when field is edited
     if (errors[name as keyof Customer]) {
-        setErrors((prev) => ({
-            ...prev,
-            [name]: undefined,
-        }))
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }))
     }
-}
+  }
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -247,63 +256,83 @@ export default function Customers() {
     }
   }
 
-  const handleAddCustomer = () => {
-    if (!newCustomer.name || !newCustomer.email) {
+  const validateForm = () => {
+    const newErrors: Partial<Customer> = {}
+
+    if (!newCustomer.name.trim()) {
+      newErrors.name = "Name is required"
+    }
+
+    if (!newCustomer.email.trim()) {
+      newErrors.email = "Email is required"
+    } else if (!/\S+@\S+\.\S+/.test(newCustomer.email)) {
+      newErrors.email = "Email is invalid"
+    }
+
+    if (!newCustomer.phone.trim()) {
+      newErrors.phone = "Phone number is required"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleAddCustomer = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateForm()) {
       // toast({
       //   title: "Missing information",
       //   description: "Please fill in all required fields.",
       //   variant: "destructive",
       // })
-      return
+      // const id = Math.max(0, ...customers.map((c) => c.id)) + 1
+      const customer: Customer = {
+        id: newCustomer.id,
+        name: newCustomer.name,
+        email: newCustomer.email,
+        phone: newCustomer.phone,
+        address: newCustomer.address,
+        customerType: newCustomer.customerType,
+        notes: newCustomer.notes,
+        joinDate: new Date(),
+        totalSpent: 0,
+        visits: 0,
+        lastVisit: new Date(),
+        loyaltyPoints: 0,
+        favoriteItems: [],
+      }
+
+      setCustomers([...customers, customer])
+      // setNewCustomer({
+      //   name: "",
+      //   email: "",
+      //   phone: "",
+      //   address: "",
+      //   customerType: "Regular",
+      //   notes: ""
+      // })
+      const { name, email, phone, address, customerType, notes } = customer;
+
+      const selectedCustomer = { name, email, phone, address, customerType, notes };
+
+      console.log(selectedCustomer);
+      console.log(JSON.stringify(customer))
+      fetch("http://localhost:5000/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selectedCustomer),
+      })
+      // .then((res) => res.json())
+      // .then((data) => {
+      //   setCustomers([...customers, data]);
+      // });
+      setIsAddDialogOpen(false)
+
+      // toast({
+      //   title: "Customer added",
+      //   description: `${customer.name} has been added to your customer database.`,
+      // })
     }
-
-    const id = Math.max(0, ...customers.map((c) => c.id)) + 1
-    const customer: Customer = {
-      id,
-      name: newCustomer.name,
-      email: newCustomer.email,
-      phone: newCustomer.phone,
-      address: newCustomer.address,
-      customerType: newCustomer.customerType,
-      notes: newCustomer.notes,
-      joinDate: new Date(),
-      totalSpent: 0,
-      visits: 0,
-      lastVisit: new Date(),
-      loyaltyPoints: 0,
-      favoriteItems: [],
-    }
-
-    setCustomers([...customers, customer])
-    // setNewCustomer({
-    //   name: "",
-    //   email: "",
-    //   phone: "",
-    //   address: "",
-    //   customerType: "Regular",
-    //   notes: ""
-    // })
-    const { name, email, phone, address, customerType, notes } = customer;
-
-    const selectedCustomer = { name, email, phone, address, customerType, notes };
-
-    console.log(selectedCustomer);
-    console.log(JSON.stringify(customer))
-    fetch("http://localhost:5000/api/customers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(selectedCustomer),
-    })
-    // .then((res) => res.json())
-    // .then((data) => {
-    //   setCustomers([...customers, data]);
-    // });
-    setIsAddDialogOpen(false)
-
-    // toast({
-    //   title: "Customer added",
-    //   description: `${customer.name} has been added to your customer database.`,
-    // })
   }
 
   const handleViewDetails = (customer: Customer) => {
@@ -343,76 +372,89 @@ export default function Customers() {
                 <DialogTitle>Add New Customer</DialogTitle>
                 <DialogDescription>Fill in the details to add a new customer to your database.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={newCustomer.name}
-                    // onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                    onChange={handleChange}
-                    className={errors.name ? "border-red-500" : ""}
-                  />
-                  {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+              <form onSubmit={handleAddCustomer}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Name
+                    </Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={newCustomer.name}
+                      // onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                      onChange={handleChange}
+                      className={errors.name ? "border-red-500" : ""}
+                    />
+                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={newCustomer.email}
+                      // onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                      onChange={handleChange}
+                      className={errors.email ? "border-red-500" : ""}
+                    />
+                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={newCustomer.phone}
+                      // onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                      onChange={handleChange}
+                      className={errors.name ? "border-red-500" : ""}
+                    />
+                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="address" className="text-right">
+                      Address
+                    </Label>
+                    <Input
+                      id="address"
+                      value={newCustomer.address}
+                      // onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                      onChange={handleChange}
+                      className={errors.name ? "border-red-500" : ""}
+                    />
+                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes" className="flex items-center gap-2">
+                      Notes
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      value={newCustomer.notes}
+                      // onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
+                      onChange={handleChange}
+                      placeholder="Additional information about the customer"
+                      className={errors.name ? "border-red-500" : ""}
+                      rows={3}
+                    />
+                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={newCustomer.email}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                    className={errors.email ? "border-red-500" : ""}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input
-                    id="phone"
-                    value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="address" className="text-right">
-                    Address
-                  </Label>
-                  <Input
-                    id="address"
-                    value={newCustomer.address}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="flex items-center gap-2">
-                    Notes
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    value={newCustomer.notes}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
-                    placeholder="Additional information about the customer"
-                    className="resize-none"
-                    rows={3}
-                  />
-                </div>
-              </div>
+              </form>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddCustomer}>Add Customer</Button>
+                <Button type="submit" className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <User className="h-4 w-4" />
+                  Add Customer
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
