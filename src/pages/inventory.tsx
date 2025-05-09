@@ -60,39 +60,45 @@ export default function Inventory() {
   const [categoriesList, setCategoriesList] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>('');
 
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/inventory`);
+      if (res.ok) {
+        const data = await res.json();
+        // Convert string numbers to actual numbers
+        const formattedData = data.map((product: any) => ({
+          ...product,
+          price: Number(product.price),
+          cost: Number(product.cost),
+          stock: Number(product.stock)
+        }));
+        setProducts(formattedData);
+        console.log('Products:', formattedData);
+      } else {
+        console.error('Failed to fetch products:', res.status);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/categories`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategoriesList(data.map((category: any) => category.name))
+        console.log('Categories:', data);
+      } else {
+        console.error('Failed to fetch categories:', res.status);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const res = await fetch(`http://localhost:3001/api/inventory`);
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data)
-          console.log('Customers:', data);
-        } else {
-          console.error('Failed to fetch customers:', res.status);
-        }
-      } catch (err) {
-        console.error('Error fetching customers:', err);
-      }
-    };
-
-    fetchCustomers();
-
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`http://localhost:3001/api/categories`);
-        if (res.ok) {
-          const data = await res.json();
-          setCategoriesList(data.map((category: any) => category.name))
-          console.log('Categories:', data);
-        } else {
-          console.error('Failed to fetch categories:', res.status);
-        }
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-
+    fetchProducts();
     fetchCategories();
   }, []);
 
@@ -124,35 +130,38 @@ export default function Inventory() {
     }
   }
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-
       const selectedProduct = { name: newProduct.name, category: newProduct.category, price: newProduct.price, cost: newProduct.cost, stock: newProduct.stock };
 
-      console.log(selectedProduct);
+      try {
+        const response = await fetch("http://localhost:3001/api/inventory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(selectedProduct),
+        });
 
-      fetch("http://localhost:3001/api/inventory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedProduct),
-      })
-
-      setIsAddDialogOpen(false)
+        if (response.ok) {
+          // Only fetch new data if the POST request was successful
+          await fetchProducts();
+          setIsAddDialogOpen(false);
+          // Reset the form
+          setNewProduct({
+            id: "",
+            name: "",
+            category: "",
+            price: null,
+            cost: null,
+            stock: null,
+          });
+        } else {
+          console.error('Failed to add product:', response.status);
+        }
+      } catch (error) {
+        console.error('Error adding product:', error);
+      }
     }
-    // const id = Math.max(0, ...products.map((p) => p.id)) + 1
-    // const product = { ...newProduct, id } as Product
-    // if (!newProduct.name || !newProduct.category) {
-    //   // toast({
-    //   //   title: "Missing information",
-    //   //   description: "Please fill in all required fields.",
-    //   //   variant: "destructive",
-    //   // })
-    //   return
-    // }
-
-    // setProducts([...products, product])
-
 
     // toast({
     //   title: "Product added",
@@ -206,18 +215,30 @@ export default function Inventory() {
   ) => {
     // If it's a string, it's from the Select dropdown
     if (typeof eOrValue === "string") {
+      console.log("String");
       if (eOrValue === "new") {
+        console.log("New");
         const newCategory = prompt("Enter new category name:");
         if (newCategory) {
+
+          const newCategoryData = { name: newCategory };
+
+          fetch("http://localhost:3001/api/categories", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newCategoryData),
+          });
           // Add your logic to add the new category to your list
           // For example:
           // setCategoriesList((prev) => [...prev, newCategory]);
-          setNewProduct((prev) => ({
-            ...prev,
-            category: newCategory,
-          }));
-          setSelected(newCategory);
-          setErrors((prev) => ({ ...prev, category: undefined }));
+          // setNewProduct((prev) => ({
+          //   ...prev,
+          //   category: newCategory,
+          // }));
+          // setSelected(newCategory);
+          // setErrors((prev) => ({ ...prev, category: undefined }));
+          // console.log("New Category:", newCategory);
+          fetchCategories();
         }
       } else {
         setNewProduct((prev) => ({
@@ -228,6 +249,7 @@ export default function Inventory() {
         setErrors((prev) => ({ ...prev, category: undefined }));
       }
     } else {
+      console.log("Input");
       // It's an input event
       const { name, value } = eOrValue.target;
       setNewProduct((prev) => ({
@@ -472,8 +494,8 @@ export default function Inventory() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end">
-                      ${product.price}
-                      <span className="text-xs text-muted-foreground">Cost: ${product.cost}</span>
+                      ${product.price?.toFixed(2)}
+                      <span className="text-xs text-muted-foreground">Cost: ${product.cost?.toFixed(2)}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
