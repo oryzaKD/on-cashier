@@ -25,18 +25,19 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, MoreHorizontal, Edit, Trash2, AlertTriangle, ArrowUpDown } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Edit, Trash2, AlertTriangle, ArrowUpDown, User } from "lucide-react"
 // import { useToast } from "@/components/ui/use-toast"
 
 interface Product {
-  id: number
+  id: string
   name: string
   category: string
-  price: number
-  cost: number
-  stock: number
-  sku: string
+  price: number | null
+  cost: number | null
+  stock: number | null
 }
+
+type ProductErrors = Partial<Record<keyof Product, string>>;
 
 export default function Inventory() {
   // const { toast } = useToast()
@@ -44,17 +45,20 @@ export default function Inventory() {
   const [sortField, setSortField] = useState<keyof Product>("name")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [newProduct, setNewProduct] = useState<Partial<Product>>({
+  const [newProduct, setNewProduct] = useState<Product>({
+    id: "",
     name: "",
     category: "",
-    price: 0,
-    cost: 0,
-    stock: 0,
-    sku: "",
+    price: null,
+    cost: null,
+    stock: null,
   })
 
   // Mock product data
   const [products, setProducts] = useState<Product[]>([])
+
+  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string>('');
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -73,17 +77,31 @@ export default function Inventory() {
     };
 
     fetchCustomers();
-  }, []);
 
-  const categories = [...new Set(products.map((p) => p.category))]
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`http://localhost:3001/api/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          setCategoriesList(data.map((category: any) => category.name))
+          console.log('Categories:', data);
+        } else {
+          console.error('Failed to fetch categories:', res.status);
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const filteredProducts = searchQuery
     ? products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.category.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+      (p) =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
     : products
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -106,29 +124,35 @@ export default function Inventory() {
     }
   }
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.category || !newProduct.sku) {
-      // toast({
-      //   title: "Missing information",
-      //   description: "Please fill in all required fields.",
-      //   variant: "destructive",
-      // })
-      return
+  const handleAddProduct = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateForm()) {
+
+      const selectedProduct = { name: newProduct.name, category: newProduct.category, price: newProduct.price, cost: newProduct.cost, stock: newProduct.stock };
+
+      console.log(selectedProduct);
+
+      fetch("http://localhost:3001/api/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selectedProduct),
+      })
+
+      setIsAddDialogOpen(false)
     }
+    // const id = Math.max(0, ...products.map((p) => p.id)) + 1
+    // const product = { ...newProduct, id } as Product
+    // if (!newProduct.name || !newProduct.category) {
+    //   // toast({
+    //   //   title: "Missing information",
+    //   //   description: "Please fill in all required fields.",
+    //   //   variant: "destructive",
+    //   // })
+    //   return
+    // }
 
-    const id = Math.max(0, ...products.map((p) => p.id)) + 1
-    const product = { ...newProduct, id } as Product
+    // setProducts([...products, product])
 
-    setProducts([...products, product])
-    setNewProduct({
-      name: "",
-      category: "",
-      price: 0,
-      cost: 0,
-      stock: 0,
-      sku: "",
-    })
-    setIsAddDialogOpen(false)
 
     // toast({
     //   title: "Product added",
@@ -137,16 +161,88 @@ export default function Inventory() {
   }
 
   const handleDeleteProduct = (id: number) => {
-    const product = products.find((p) => p.id === id)
-    if (!product) return
+    // const product = products.find((p) => p.id === id)
+    // if (!product) return
 
-    setProducts(products.filter((p) => p.id !== id))
+    // setProducts(products.filter((p) => p.id !== id))
 
     // toast({
     //   title: "Product deleted",
     //   description: `${product.name} has been removed from inventory.`,
     // })
   }
+
+  const [errors, setErrors] = useState<ProductErrors>({})
+
+  const validateForm = () => {
+    const newErrors: ProductErrors = {}
+
+    if (!newProduct.name?.trim()) {
+      newErrors.name = "Name is required"
+    }
+
+    if (!newProduct.category) {
+      newErrors.category = "Category is required"
+    }
+
+    if (newProduct.price === undefined || newProduct.price === null || newProduct.price === 0) {
+      newErrors.price = "Price is required"
+    }
+
+    if (newProduct.cost === undefined || newProduct.cost === null || newProduct.cost === 0) {
+      newErrors.cost = "Cost is required"
+    }
+
+    if (newProduct.stock === undefined || newProduct.stock === null || newProduct.stock === 0) {
+      newErrors.stock = "Stock is required"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleChangeInput = (
+    eOrValue: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | string
+  ) => {
+    // If it's a string, it's from the Select dropdown
+    if (typeof eOrValue === "string") {
+      if (eOrValue === "new") {
+        const newCategory = prompt("Enter new category name:");
+        if (newCategory) {
+          // Add your logic to add the new category to your list
+          // For example:
+          // setCategoriesList((prev) => [...prev, newCategory]);
+          setNewProduct((prev) => ({
+            ...prev,
+            category: newCategory,
+          }));
+          setSelected(newCategory);
+          setErrors((prev) => ({ ...prev, category: undefined }));
+        }
+      } else {
+        setNewProduct((prev) => ({
+          ...prev,
+          category: eOrValue,
+        }));
+        setSelected(eOrValue);
+        setErrors((prev) => ({ ...prev, category: undefined }));
+      }
+    } else {
+      // It's an input event
+      const { name, value } = eOrValue.target;
+      setNewProduct((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+      // Clear error when field is edited
+      if (errors[name as keyof Product]) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: undefined,
+        }));
+      }
+    }
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -174,92 +270,104 @@ export default function Inventory() {
                 <DialogTitle>Add New Product</DialogTitle>
                 <DialogDescription>Fill in the details to add a new product to your inventory.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    className="col-span-3"
-                  />
+              <form onSubmit={handleAddProduct}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Name
+                    </Label>
+                    <div className="col-span-3">
+                      <Input
+                        id="name"
+                        name="name"
+                        value={newProduct.name}
+                        onChange={handleChangeInput}
+                        className={errors.name ? "border-red-500" : ""}
+                      />
+                      {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="text-right">
+                      Category
+                    </Label>
+                    <Select value={selected} onValueChange={handleChangeInput}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesList.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="new">+ Add New Category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="price" className="text-right">
+                      Price ($)
+                    </Label>
+                    <Input
+                      id="price"
+                      name="price"
+                      type="number"
+                      value={newProduct.price ?? ""}
+                      onChange={handleChangeInput}
+                      className={errors.price ? "border-red-500" : ""}
+                    />
+                    {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="cost" className="text-right">
+                      Cost ($)
+                    </Label>
+                    <Input
+                      id="cost"
+                      name="cost"
+                      type="number"
+                      value={newProduct.cost || ""}
+                      onChange={handleChangeInput}
+                      className={errors.cost ? "border-red-500" : ""}
+                    />
+                    {errors.cost && <p className="text-xs text-red-500 mt-1">{errors.cost}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="stock" className="text-right">
+                      Stock
+                    </Label>
+                    <Input
+                      id="stock"
+                      name="stock"
+                      type="number"
+                      value={newProduct.stock || ""}
+                      onChange={handleChangeInput}
+                      className={errors.stock ? "border-red-500" : ""}
+                    />
+                    {errors.stock && <p className="text-xs text-red-500 mt-1">{errors.stock}</p>}
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Category
-                  </Label>
-                  <Select
-                    value={newProduct.category}
-                    onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="new">+ Add New Category</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sku" className="text-right">
-                    SKU
-                  </Label>
-                  <Input
-                    id="sku"
-                    value={newProduct.sku}
-                    onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
-                    Price ($)
-                  </Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={newProduct.price || ""}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: Number.parseFloat(e.target.value) })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="cost" className="text-right">
-                    Cost ($)
-                  </Label>
-                  <Input
-                    id="cost"
-                    type="number"
-                    value={newProduct.cost || ""}
-                    onChange={(e) => setNewProduct({ ...newProduct, cost: Number.parseFloat(e.target.value) })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="stock" className="text-right">
-                    Stock
-                  </Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={newProduct.stock || ""}
-                    onChange={(e) => setNewProduct({ ...newProduct, stock: Number.parseInt(e.target.value) })}
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
+              </form>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddProduct}>Add Product</Button>
+                <Button
+                  type="submit"
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!validateForm()) {
+                      return;
+                    }
+                    handleAddProduct(e);
+                  }}
+                >
+                  <User className="h-4 w-4" />
+                  Add Product
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -273,7 +381,7 @@ export default function Inventory() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{products.length}</div>
-            <p className="text-xs text-muted-foreground">across {categories.length} categories</p>
+            <p className="text-xs text-muted-foreground">across {categoriesList.length} categories</p>
           </CardContent>
         </Card>
         <Card>
@@ -282,7 +390,7 @@ export default function Inventory() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${products.reduce((sum, p) => sum + p.cost * p.stock, 0).toFixed(2)}
+              ${products.reduce((sum, p) => sum + (p.cost || 0) * (p.stock || 0), 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">based on cost price</p>
           </CardContent>
@@ -292,7 +400,7 @@ export default function Inventory() {
             <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.filter((p) => p.stock < 10).length}</div>
+            <div className="text-2xl font-bold">{products.filter((p) => p.stock && p.stock < 10).length}</div>
             <p className="text-xs text-muted-foreground">items with less than 10 in stock</p>
           </CardContent>
         </Card>
@@ -356,24 +464,21 @@ export default function Inventory() {
             <TableBody>
               {sortedProducts.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      {product.name}
-                      <span className="text-xs text-muted-foreground">{product.sku}</span>
-                    </div>
+                  <TableCell>
+                    <Badge variant="outline">{product.name}</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{product.category}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end">
-                      ${product.price.toFixed(2)}
-                      <span className="text-xs text-muted-foreground">Cost: ${product.cost.toFixed(2)}</span>
+                      ${product.price}
+                      <span className="text-xs text-muted-foreground">Cost: ${product.cost}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end">
-                      {product.stock < 10 && <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" />}
+                      {product.stock && product.stock < 10 && <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" />}
                       {product.stock}
                     </div>
                   </TableCell>
@@ -394,7 +499,7 @@ export default function Inventory() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onClick={() => handleDeleteProduct(product.id)}
+                        // onClick={() => handleDeleteProduct(product.id)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete

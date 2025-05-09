@@ -247,7 +247,7 @@ export default function Customers() {
 
       console.log(selectedCustomer);
       console.log(JSON.stringify(customer))
-      fetch("http://localhost:5000/api/customers", {
+      fetch("http://localhost:3001/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(selectedCustomer),
